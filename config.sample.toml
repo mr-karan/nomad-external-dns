@@ -1,0 +1,18 @@
+[app]
+log_level = "debug" # `debug` for verbose logs. `info` otherwise.
+env = "dev" # dev|prod.
+dry_run = true # set to true if you don't want the DNS records to be actually created.
+
+[stream]
+max_reconnect_attempts = 5 # Maximum reconnection attempts with Nomad Events API. After this limit is breached, program exits.
+data_dir = "./data/events" # Directory to store `index.json` file which is used to set index offset when listening for events.
+commit_index_interval = "30s" # Interval at which `index.json` gets stored in `data_dir`.
+nomad_data_dir = "/opt/nomad/data/alloc" # Nomad data directory where allocs are stored.
+
+[dns]
+provider = "route53"
+domain_filters = ["test.internal"]
+
+[provider.route53]
+region = "ap-south-1"
+max_retries = 5
