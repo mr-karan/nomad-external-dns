@@ -1,4 +1,4 @@
-package dns
+package main
 
 import (
 	"fmt"
@@ -41,4 +41,13 @@ func getRecordType(s string) string {
 	default:
 		return defaultRecordType
 	}
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

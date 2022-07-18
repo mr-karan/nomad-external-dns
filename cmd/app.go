@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/mr-karan/nomad-events-sink/pkg/stream"
-	"github.com/mr-karan/nomad-external-dns/internal/dns"
 	"github.com/zerodha/logf"
 )
 
@@ -24,9 +23,8 @@ type App struct {
 	log  logf.Logger
 	opts Opts
 
-	stream *stream.Stream
-
-	controller *dns.Controller
+	stream   *stream.Stream
+	provider Provider
 }
 
 // Start initialises the subscription stream in background and waits
@@ -85,18 +83,19 @@ func (app *App) handleEvent(e api.Event, meta stream.Meta) {
 
 	// Event Types: https://www.nomadproject.io/api-docs/events#event-types
 	switch e.Type {
-	case "ServiceRegistration":
-		app.log.Info("adding new record for", "svc", svc.ServiceName)
-		err = app.controller.AddRecord(svc)
+	case "ServiceRegistration", "ServiceDeregistration":
+		app.log.Info("updating new record for", "svc", svc.ServiceName)
+		// Fetch the service object using the service name.
+		// Get the list of all address/port combinations.
+		rec, zone, err := app.prepareRecord(svc)
+		if err != nil {
+			app.log.Error("error preparing record from service", "error", err, "svc", svc.ServiceName, "namespace", svc.Namespace)
+		}
+		err = app.updateRecord(rec, zone)
 		if err != nil {
 			app.log.Error("error adding record", "error", err)
 		}
-	case "ServiceDeregistration":
-		app.log.Info("removing record for", "svc", svc.ServiceName)
-		// err = app.Delete(svc)
-		// if err != nil {
-		// 	app.log.Error("error adding record", "error", err)
-		// }
+
 	default:
 		return
 	}

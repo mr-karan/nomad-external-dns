@@ -13,7 +13,6 @@ import (
 	"github.com/libdns/cloudflare"
 	route53 "github.com/mr-karan/libdns-route53"
 	"github.com/mr-karan/nomad-events-sink/pkg/stream"
-	"github.com/mr-karan/nomad-external-dns/internal/dns"
 	flag "github.com/spf13/pflag"
 	"github.com/zerodha/logf"
 )
@@ -101,14 +100,15 @@ func initOpts(ko *koanf.Koanf) Opts {
 	return Opts{
 		maxReconnectAttempts: ko.MustInt("stream.max_reconnect_attempts"),
 		nomadDataDir:         ko.MustString("stream.nomad_data_dir"),
+		domains:              ko.MustStrings("dns.domain_filters"),
 	}
 }
 
-// initController initialises a DNS controller object to interact with
+// initProvider initialises a DNS controller object to interact with
 // the upstream DNS provider.
-func initController(ko *koanf.Koanf, log logf.Logger) (*dns.Controller, error) {
+func initProvider(ko *koanf.Koanf, log logf.Logger) (Provider, error) {
 	var (
-		provider dns.Provider
+		provider Provider
 		err      error
 	)
 
@@ -128,5 +128,5 @@ func initController(ko *koanf.Koanf, log logf.Logger) (*dns.Controller, error) {
 	}
 
 	// Initialise the controller object.
-	return dns.NewController(provider, log, ko.MustStrings("dns.domain_filters")), nil
+	return provider, nil
 }

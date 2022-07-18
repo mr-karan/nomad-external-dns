@@ -26,11 +26,11 @@ func main() {
 	}
 
 	// Initialise DNS controller.
-	ctrl, err := initController(ko, app.log)
+	prov, err := initProvider(ko, app.log)
 	if err != nil {
 		app.log.Fatal("error initialising provider", "error", err)
 	}
-	app.controller = ctrl
+	app.provider = prov
 
 	// Initialise nomad events stream.
 	strm, err := initStream(ctx, ko, app.handleEvent)

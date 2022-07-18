@@ -4,7 +4,7 @@ job "redis" {
   type = "service"
 
   group "cache" {
-    count = 1
+    count = 3
 
     network {
       port "db" {
