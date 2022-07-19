@@ -13,6 +13,7 @@ import (
 	"github.com/libdns/cloudflare"
 	route53 "github.com/mr-karan/libdns-route53"
 	"github.com/mr-karan/nomad-events-sink/pkg/stream"
+	"github.com/mr-karan/nomad-external-dns/internal/service"
 	flag "github.com/spf13/pflag"
 	"github.com/zerodha/logf"
 )
@@ -106,9 +107,9 @@ func initOpts(ko *koanf.Koanf) Opts {
 
 // initProvider initialises a DNS controller object to interact with
 // the upstream DNS provider.
-func initProvider(ko *koanf.Koanf, log logf.Logger) (Provider, error) {
+func initProvider(ko *koanf.Koanf, log logf.Logger) (service.DNSProvider, error) {
 	var (
-		provider Provider
+		provider service.DNSProvider
 		err      error
 	)
 

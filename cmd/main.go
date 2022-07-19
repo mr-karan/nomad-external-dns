@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/mr-karan/nomad-external-dns/internal/service"
 )
 
 var (
@@ -21,8 +23,9 @@ func main() {
 
 	// Initialise a new instance of app.
 	app := App{
-		log:  initLogger(ko),
-		opts: initOpts(ko),
+		log:      initLogger(ko),
+		opts:     initOpts(ko),
+		services: make(map[string]*service.ServiceMeta, 0),
 	}
 
 	// Initialise DNS controller.

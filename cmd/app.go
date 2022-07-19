@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/mr-karan/nomad-events-sink/pkg/stream"
+	"github.com/mr-karan/nomad-external-dns/internal/service"
+	"github.com/mr-karan/nomad-external-dns/internal/utils"
 	"github.com/zerodha/logf"
 )
 
@@ -24,7 +26,9 @@ type App struct {
 	opts Opts
 
 	stream   *stream.Stream
-	provider Provider
+	provider service.DNSProvider
+
+	services map[string]*service.ServiceMeta
 }
 
 // Start initialises the subscription stream in background and waits
@@ -83,19 +87,28 @@ func (app *App) handleEvent(e api.Event, meta stream.Meta) {
 
 	// Event Types: https://www.nomadproject.io/api-docs/events#event-types
 	switch e.Type {
-	case "ServiceRegistration", "ServiceDeregistration":
-		app.log.Info("updating new record for", "svc", svc.ServiceName)
-		// Fetch the service object using the service name.
-		// Get the list of all address/port combinations.
-		rec, zone, err := app.prepareRecord(svc)
-		if err != nil {
-			app.log.Error("error preparing record from service", "error", err, "svc", svc.ServiceName, "namespace", svc.Namespace)
+	case "ServiceRegistration":
+		app.log.Info("handling svc registration event", "svc", svc.ServiceName)
+		// Check if service object exists in the map.
+		if _, ok := app.services[utils.GetPrefix(svc)]; !ok {
+			app.log.Debug("creating a new service controller", "svc", svc.ServiceName, "namespace", svc.Namespace)
+			//If it doesn't exist, create and set in map.
+			svcMeta := service.InitController(service.Opts{
+				Logger:    app.log,
+				Name:      svc.ServiceName,
+				Job:       svc.JobID,
+				Namespace: svc.Namespace,
+				ID:        svc.ID,
+				Domains:   app.opts.domains,
+				Client:    *app.stream.Client,
+				Provider:  app.provider,
+			})
+			svcMeta.Start()
+			app.services[utils.GetPrefix(svc)] = svcMeta
 		}
-		err = app.updateRecord(rec, zone)
-		if err != nil {
-			app.log.Error("error adding record", "error", err)
-		}
-
+		// Add the event to the channel inside svcMeta
+		svcMeta := app.services[utils.GetPrefix(svc)]
+		svcMeta.Receive(svc)
 	default:
 		return
 	}

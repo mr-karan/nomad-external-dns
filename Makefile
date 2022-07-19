@@ -21,7 +21,6 @@ fresh: clean build run
 clean:
 	rm -rf bin/${APP-BIN}
 	go clean
-	rm -rf ./data/events/
 
 .PHONY: lint
 lint:
