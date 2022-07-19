@@ -11,7 +11,6 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	"github.com/libdns/cloudflare"
 	route53 "github.com/mr-karan/libdns-route53"
 	flag "github.com/spf13/pflag"
 	"github.com/zerodha/logf"
@@ -102,7 +101,7 @@ func initOpts(ko *koanf.Koanf) Opts {
 
 // initProvider initialises a DNS controller object to interact with
 // the upstream DNS provider.
-func initProvider(ko *koanf.Koanf, log logf.Logger) (DNSProvider, error) {
+func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 	var (
 		provider DNSProvider
 		err      error
@@ -117,8 +116,9 @@ func initProvider(ko *koanf.Koanf, log logf.Logger) (DNSProvider, error) {
 			return nil, err
 		}
 
-	case "cloudflare":
-		provider = &cloudflare.Provider{APIToken: ko.MustString("provider.cloudflare.api_token")}
+		// TODO: Test this out.
+	// case "cloudflare":
+	// 	provider = &cloudflare.Provider{APIToken: ko.MustString("provider.cloudflare.api_token")}
 	default:
 		return nil, fmt.Errorf("unknown provider type")
 	}

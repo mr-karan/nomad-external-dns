@@ -21,27 +21,27 @@ func main() {
 
 	// Initialise a new instance of app.
 	app := App{
-		log:      initLogger(ko),
+		lo:       initLogger(ko),
 		opts:     initOpts(ko),
 		services: make(map[string]ServiceMeta, 0),
 	}
 
-	// Initialise DNS controller.
-	prov, err := initProvider(ko, app.log)
+	// Initialise DNS provider.
+	prov, err := initProvider(ko)
 	if err != nil {
-		app.log.Fatal("error initialising provider", "error", err)
+		app.lo.Fatal("error initialising dns provider", "error", err)
 	}
 	app.provider = prov
 
 	// Initialise nomad api client.
 	client, err := initNomadClient()
 	if err != nil {
-		app.log.Fatal("error initialising nomad api client", "error", err)
+		app.lo.Fatal("error initialising nomad api client", "error", err)
 	}
 	app.nomadClient = client
 
 	// Start an instance of app.
-	app.log.Info("booting nomad alloc logger",
+	app.lo.Info("starting nomad-external-dns",
 		"version", buildString,
 	)
 	app.Start(ctx)

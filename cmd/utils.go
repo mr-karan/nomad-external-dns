@@ -44,6 +44,7 @@ func ParseTTL(s string) (time.Duration, error) {
 // 	}
 // }
 
+// Contains checks if an element exists in the slice.
 func Contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -53,7 +54,7 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
-// getPrefix returns a unique identifier for a service in a cluster.
+// GetPrefix returns a unique identifier for a service in a cluster.
 // Each namespace can only have a unique service name, so this identifier works.
 func GetPrefix(svc *api.ServiceRegistration) string {
 	return fmt.Sprintf("%s_%s", svc.Namespace, svc.ServiceName)

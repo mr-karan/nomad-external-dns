@@ -8,6 +8,9 @@ import (
 	"github.com/libdns/libdns"
 )
 
+// fetchRecords fetches all records from the DNS provider.
+// It then checks all the records that are created by this program (by checking the TXT record for the hostname)
+// and returns a map of records that are created by this program.
 func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 	recordsOut := make(map[string][]RecordMeta, 0)
 	recordNames := make([]string, 0)
@@ -18,6 +21,7 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 		if err != nil {
 			return recordsOut, fmt.Errorf("error fetching records: %w", err)
 		}
+
 		// Iterate on these records of type TXT and find out whether it's created by this program
 		for _, r := range records {
 			if r.Type == "TXT" {
@@ -26,10 +30,12 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 				}
 			}
 		}
+
 		// For all the records in this domain that are created by this program, we need to add all possible records.
 		for _, r := range records {
 			if Contains(recordNames, r.Name) {
 				// Set a proper relative name before we delete.
+				// The r.Name from get records consists of FQDN but when we delete we need the relative name only.
 				r.Name = libdns.RelativeName(strings.TrimRight(r.Name, "."), d)
 				recordsOut[r.Name] = append(recordsOut[r.Name], RecordMeta{Zone: d, Records: []libdns.Record{r}})
 			}
@@ -39,6 +45,10 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 	return recordsOut, nil
 }
 
+// cleanupRecords iterates on the records map and does a map lookup to check
+// if the service still exists in the cluster. In case the job is dead/service is no more,
+// it adds these records and enqueues them for deleting. It then deletes both the TXT and A recod
+// created for the hostname.
 func (app *App) cleanupRecords(recordsMap map[string][]RecordMeta) {
 	app.Lock()
 	defer app.Unlock()
@@ -62,7 +72,7 @@ func (app *App) cleanupRecords(recordsMap map[string][]RecordMeta) {
 				}
 				// Check if this service exists in the map or not.
 				id := namespace + "_" + svc
-				app.log.Debug("checking if service exists in map", "id", id)
+				app.lo.Debug("checking if service exists in map", "id", id)
 				if _, exists := app.services[id]; !exists {
 					deleteRecords = append(deleteRecords, name)
 				}
@@ -71,17 +81,17 @@ func (app *App) cleanupRecords(recordsMap map[string][]RecordMeta) {
 		}
 	}
 
-	app.log.Debug("pruning outdated records", "count", len(deleteRecords))
+	app.lo.Info("pruning outdated records", "count", len(deleteRecords))
 	for _, rec := range deleteRecords {
 		recMeta, exists := recordsMap[rec]
 		if !exists {
 			continue
 		}
 		for _, m := range recMeta {
-			app.log.Debug("deleting record", "zone", m.Zone, "records", m.Records)
+			app.lo.Info("deleting record", "zone", m.Zone, "records", m.Records)
 			_, err := app.provider.DeleteRecords(context.Background(), m.Zone+".", m.Records)
 			if err != nil {
-				app.log.Error("error deleting records", "error", err)
+				app.lo.Error("error deleting records", "error", err)
 				continue
 			}
 		}

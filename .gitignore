@@ -18,3 +18,4 @@ data/
 config.toml
 *.env
 bin/
+dist/

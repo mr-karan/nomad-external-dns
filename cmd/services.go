@@ -11,12 +11,16 @@ import (
 )
 
 const (
-	HostnameAnnotationKey = "external-dns/hostname" // Annotated tag for defininig hostname.
-	TTLAnnotationKey      = "external-dns/ttl"      // Annotated tag for defininig TTL.
-	DefaultTTL            = time.Second * 30        // Default TTL to set for records.
-	DefaultRecordType     = "A"                     // Default DNS record type.
+	// HostnameAnnotationKey is the annotated tag for defininig hostname.
+	HostnameAnnotationKey = "external-dns/hostname"
+	// TTLAnnotationKey is the annotated tag for defininig TTL.
+	TTLAnnotationKey = "external-dns/ttl"
+	// DefaultTTL is the TTL to set for records if unspecified or unparseable.
+	DefaultTTL = time.Second * 30
 )
 
+// ServiceMeta contains minimal items from a api.ServiceRegistration event.
+// We only care about these fields.
 type ServiceMeta struct {
 	Name      string   // Human Name of the service.
 	Namespace string   // Namespace to which the service belongs to.
@@ -40,6 +44,8 @@ type RecordMeta struct {
 	Zone    string
 }
 
+//fetchServices fetches the list of services from the Nomad API
+// and creates a map for the active services.
 func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 	services := make(map[string]ServiceMeta, 0)
 
@@ -48,10 +54,10 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 		return nil, fmt.Errorf("error listing services: %w", err)
 	}
 
-	app.log.Debug("fetched services", "count", len(servicesList))
+	app.lo.Debug("fetched services", "count", len(servicesList))
 	for _, l := range servicesList {
 		for _, s := range l.Services {
-			app.log.Debug("fetching service details for", "svc", s.ServiceName, "namespace", l.Namespace)
+			app.lo.Debug("fetching service details", "svc", s.ServiceName, "namespace", l.Namespace)
 			svcObjects, _, err := app.nomadClient.Services().Get(s.ServiceName, (&api.QueryOptions{Namespace: l.Namespace}))
 			if err != nil {
 				return nil, fmt.Errorf("error fetching service detail: %w", err)
@@ -118,19 +124,19 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 
 		record, err := v.ToRecord(domains)
 		if err != nil {
-			app.log.Error("error converting service to record", "error", err)
+			app.lo.Error("error converting service to record", "error", err)
 			continue
 		}
-		app.log.Debug("setting dns records", "records", record.Records, "zone", record.Zone)
+		app.lo.Info("setting dns records", "records", record.Records, "zone", record.Zone)
 		_, err = app.provider.SetRecords(context.Background(), record.Zone, record.Records)
 		if err != nil {
-			app.log.Error("error adding records to zone", "error", err)
+			app.lo.Error("error adding records to zone", "error", err)
 			continue
 		}
 	}
 }
 
-// Converts a service meta object to a libdns record.
+// ToRecord converts a service meta object to a libdns record.
 // This is used to send to upstream DNS providers.
 func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 	var (
@@ -140,6 +146,7 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 		ttl    time.Duration
 		record RecordMeta
 	)
+
 	// We extract the hostname/TTL from the annotated tags, so return if they're not present in the svc object.
 	if len(s.Tags) == 0 {
 		return record, fmt.Errorf("tags cannot be empty")
@@ -160,6 +167,7 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 			}
 		}
 	}
+
 	// At this point both the host and zone should be non empty.
 	if host == "" && zone == "" {
 		return record, fmt.Errorf("error parsing host: %s or zone: %s", host, zone)
@@ -171,6 +179,8 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 	}
 
 	// Prepare a record object.
+	// We add a TXT record as well as an identifier for the service.
+	// This will be used for pruning unused records on the provider.
 	record = RecordMeta{
 		Records: []libdns.Record{
 			{
