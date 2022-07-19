@@ -8,8 +8,13 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/libdns/libdns"
-	"github.com/mr-karan/nomad-external-dns/internal/models"
-	"github.com/mr-karan/nomad-external-dns/internal/utils"
+)
+
+const (
+	HostnameAnnotationKey = "external-dns/hostname" // Annotated tag for defininig hostname.
+	TTLAnnotationKey      = "external-dns/ttl"      // Annotated tag for defininig TTL.
+	DefaultTTL            = time.Second * 30        // Default TTL to set for records.
+	DefaultRecordType     = "A"                     // Default DNS record type.
 )
 
 type ServiceMeta struct {
@@ -23,6 +28,7 @@ type ServiceMeta struct {
 // DNSProvider wraps the required libdns interfaces.
 // The providers must satisfy this interface.
 type DNSProvider interface {
+	libdns.RecordGetter
 	libdns.RecordSetter
 	libdns.RecordDeleter
 }
@@ -41,6 +47,8 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error listing services: %w", err)
 	}
+
+	app.log.Debug("fetched services", "count", len(servicesList))
 	for _, l := range servicesList {
 		for _, s := range l.Services {
 			app.log.Debug("fetching service details for", "svc", s.ServiceName, "namespace", l.Namespace)
@@ -60,7 +68,7 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 			addr := make([]string, 0, len(svcObjects))
 			for _, s := range svcObjects {
 				// Only append the service if it's not added before. Otherwise AWS complains of a duplicate entry.
-				if !utils.Contains(addr, s.Address) {
+				if !Contains(addr, s.Address) {
 					addr = append(addr, s.Address)
 				}
 			}
@@ -74,7 +82,7 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 				Addresses: addr,
 			}
 			// Add the service to the map.
-			services[utils.GetPrefix(svcObjects[0])] = svcMeta
+			services[GetPrefix(svcObjects[0])] = svcMeta
 		}
 	}
 	return services, nil
@@ -96,7 +104,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 		_, exists := app.services[k]
 		if exists {
 			for _, a := range app.services[k].Addresses {
-				if !utils.Contains(v.Addresses, a) {
+				if !Contains(v.Addresses, a) {
 					update = true
 				}
 			}
@@ -113,6 +121,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 			app.log.Error("error converting service to record", "error", err)
 			continue
 		}
+		app.log.Debug("setting dns records", "records", record.Records, "zone", record.Zone)
 		_, err = app.provider.SetRecords(context.Background(), record.Zone, record.Records)
 		if err != nil {
 			app.log.Error("error adding records to zone", "error", err)
@@ -138,16 +147,16 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 
 	// Parse the hostname and TTL from tags.
 	for _, tag := range s.Tags {
-		if strings.HasPrefix(tag, models.HostnameAnnotationKey) {
-			host, zone, err = utils.GetRecordName(strings.Split(tag, models.HostnameAnnotationKey+"=")[1], domains)
+		if strings.HasPrefix(tag, HostnameAnnotationKey) {
+			host, zone, err = GetRecordName(strings.Split(tag, HostnameAnnotationKey+"=")[1], domains)
 			if err != nil {
 				return record, fmt.Errorf("error fetching hostname from tags: %w", err)
 			}
 		}
-		if strings.HasPrefix(tag, models.TTLAnnotationKey) {
-			ttl, err = utils.ParseTTL(strings.Split(tag, models.TTLAnnotationKey+"=")[1])
+		if strings.HasPrefix(tag, TTLAnnotationKey) {
+			ttl, err = ParseTTL(strings.Split(tag, TTLAnnotationKey+"=")[1])
 			if err != nil {
-				ttl = models.DefaultTTL
+				ttl = DefaultTTL
 			}
 		}
 	}

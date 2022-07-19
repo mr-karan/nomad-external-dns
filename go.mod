@@ -7,8 +7,7 @@ require (
 	github.com/knadh/koanf v1.4.2
 	github.com/libdns/cloudflare v0.1.0
 	github.com/libdns/libdns v0.2.1
-	github.com/mr-karan/libdns-route53 v1.3.1-0.20220718085624-3f403f29fa34
-	github.com/mr-karan/nomad-events-sink v0.2.0
+	github.com/mr-karan/libdns-route53 v1.3.1-0.20220719073346-f6674734db71
 	github.com/spf13/pflag v1.0.5
 	github.com/zerodha/logf v0.5.5
 )

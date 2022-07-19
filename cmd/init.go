@@ -94,8 +94,9 @@ func initNomadClient() (*api.Client, error) {
 
 func initOpts(ko *koanf.Koanf) Opts {
 	return Opts{
-		syncInterval: ko.MustDuration("app.sync_interval"),
-		domains:      ko.MustStrings("dns.domain_filters"),
+		updateInterval: ko.MustDuration("app.update_interval"),
+		pruneInterval:  ko.MustDuration("app.prune_interval"),
+		domains:        ko.MustStrings("dns.domain_filters"),
 	}
 }
 
