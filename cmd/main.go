@@ -5,8 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/mr-karan/nomad-external-dns/internal/service"
 )
 
 var (
@@ -25,7 +23,7 @@ func main() {
 	app := App{
 		log:      initLogger(ko),
 		opts:     initOpts(ko),
-		services: make(map[string]*service.ServiceMeta, 0),
+		services: make(map[string]ServiceMeta, 0),
 	}
 
 	// Initialise DNS controller.
@@ -35,12 +33,12 @@ func main() {
 	}
 	app.provider = prov
 
-	// Initialise nomad events stream.
-	strm, err := initStream(ctx, ko, app.handleEvent)
+	// Initialise nomad api client.
+	client, err := initNomadClient()
 	if err != nil {
-		app.log.Fatal("error initialising stream", "error", err)
+		app.log.Fatal("error initialising nomad api client", "error", err)
 	}
-	app.stream = strm
+	app.nomadClient = client
 
 	// Start an instance of app.
 	app.log.Info("booting nomad alloc logger",

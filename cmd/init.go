@@ -6,14 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/nomad/api"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/libdns/cloudflare"
 	route53 "github.com/mr-karan/libdns-route53"
-	"github.com/mr-karan/nomad-events-sink/pkg/stream"
-	"github.com/mr-karan/nomad-external-dns/internal/service"
 	flag "github.com/spf13/pflag"
 	"github.com/zerodha/logf"
 )
@@ -84,32 +83,27 @@ func initConfig(cfgDefault string, envPrefix string) *koanf.Koanf {
 	return ko
 }
 
-func initStream(ctx context.Context, ko *koanf.Koanf, cb stream.CallbackFunc) (*stream.Stream, error) {
-	s, err := stream.New(
-		ko.MustString("stream.data_dir"),
-		ko.MustDuration("stream.commit_index_interval"),
-		cb,
-		true,
-	)
+// initNomadClient initialises a Nomad API client.
+func initNomadClient() (*api.Client, error) {
+	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
-		return nil, fmt.Errorf("error initialising stream")
+		return nil, err
 	}
-	return s, nil
+	return client, nil
 }
 
 func initOpts(ko *koanf.Koanf) Opts {
 	return Opts{
-		maxReconnectAttempts: ko.MustInt("stream.max_reconnect_attempts"),
-		nomadDataDir:         ko.MustString("stream.nomad_data_dir"),
-		domains:              ko.MustStrings("dns.domain_filters"),
+		syncInterval: ko.MustDuration("app.sync_interval"),
+		domains:      ko.MustStrings("dns.domain_filters"),
 	}
 }
 
 // initProvider initialises a DNS controller object to interact with
 // the upstream DNS provider.
-func initProvider(ko *koanf.Koanf, log logf.Logger) (service.DNSProvider, error) {
+func initProvider(ko *koanf.Koanf, log logf.Logger) (DNSProvider, error) {
 	var (
-		provider service.DNSProvider
+		provider DNSProvider
 		err      error
 	)
 
