@@ -14,6 +14,7 @@ type Opts struct {
 	updateInterval time.Duration
 	pruneInterval  time.Duration
 	domains        []string
+	dryRun         bool
 }
 
 // App is the global container that holds

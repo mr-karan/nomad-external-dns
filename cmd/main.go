@@ -40,6 +40,8 @@ func main() {
 	}
 	app.nomadClient = client
 
+	app.lo.Info("initialised nomad client", "addr", app.nomadClient.Address())
+
 	// Start an instance of app.
 	app.lo.Info("starting nomad-external-dns",
 		"version", buildString,

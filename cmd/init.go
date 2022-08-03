@@ -96,6 +96,7 @@ func initOpts(ko *koanf.Koanf) Opts {
 		updateInterval: ko.MustDuration("app.update_interval"),
 		pruneInterval:  ko.MustDuration("app.prune_interval"),
 		domains:        ko.MustStrings("dns.domain_filters"),
+		dryRun:         ko.Bool("app.dry_run"),
 	}
 }
 
