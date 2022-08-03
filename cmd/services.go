@@ -44,7 +44,7 @@ type RecordMeta struct {
 	Zone    string
 }
 
-//fetchServices fetches the list of services from the Nomad API
+// fetchServices fetches the list of services from the Nomad API
 // and creates a map for the active services.
 func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 	services := make(map[string]ServiceMeta, 0)
@@ -157,7 +157,7 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 		if strings.HasPrefix(tag, HostnameAnnotationKey) {
 			host, zone, err = GetRecordName(strings.Split(tag, HostnameAnnotationKey+"=")[1], domains)
 			if err != nil {
-				return record, fmt.Errorf("error fetching hostname from tags: %w", err)
+				return record, fmt.Errorf("error fetching hostname from tag %s: %w", tag, err)
 			}
 		}
 		if strings.HasPrefix(tag, TTLAnnotationKey) {
