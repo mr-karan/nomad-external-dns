@@ -1,11 +1,10 @@
 module github.com/mr-karan/nomad-external-dns
 
-go 1.18
+go 1.19
 
 require (
 	github.com/hashicorp/nomad/api v0.0.0-20220715220135-cd047cdc03cd
 	github.com/knadh/koanf v1.4.2
-	github.com/libdns/cloudflare v0.1.0
 	github.com/libdns/libdns v0.2.1
 	github.com/mr-karan/libdns-route53 v1.3.1-0.20220719073346-f6674734db71
 	github.com/spf13/pflag v1.0.5
