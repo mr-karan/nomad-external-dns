@@ -48,6 +48,11 @@ To run:
 $ ./nomad-external-dns.bin --config config.toml
 ```
 
+### Nomad
+
+Refer to the [jobspec](./docs/nomad.md#jobspec) for deploying in a Nomad cluster.
+
+If you're deploying on AWS, consider referring to the IAM policy mentioned [here](./docs/aws.md#iam-policy)
 
 ## Configuration
 
