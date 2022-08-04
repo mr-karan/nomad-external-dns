@@ -62,28 +62,33 @@ func (app *App) cleanupRecords(recordsMap map[string][]RecordMeta) {
 					continue
 				}
 				// Eg: "service=redis-cache namespace=dev created-by=nomad-external-dns"
-				data := strings.Split(r.Value, " ")
+				// The TXT record is wrapped around `"`, so we need to remove them.
+				val := r.Value[1 : len(r.Value)-1]
+				app.lo.Debug("parsing TXT record to get identifier", "value", val)
+
+				// Split the string to parse each component.
+				data := strings.Split(val, " ")
 				var namespace, svc string
 				if strings.HasPrefix(data[0], "service=") {
 					svc = strings.Split(data[0], "=")[1]
 				}
 				if strings.HasPrefix(data[1], "namespace=") {
-					namespace = strings.Split(data[0], "=")[1]
+					namespace = strings.Split(data[1], "=")[1]
 				}
 				// Check if this service exists in the map or not.
 				id := namespace + "_" + svc
-				app.lo.Debug("checking if service exists in map", "id", id)
 				if _, exists := app.services[id]; !exists {
+					app.lo.Debug("deleting outdated record", "id", id)
 					deleteRecords = append(deleteRecords, name)
 				}
 			}
-
 		}
 	}
 
-	app.lo.Info("pruning outdated records", "count", len(deleteRecords))
+	app.lo.Info("pruning old DNS records", "count", len(deleteRecords))
 	for _, rec := range deleteRecords {
 		recMeta, exists := recordsMap[rec]
+		// Unlikely to happen.
 		if !exists {
 			continue
 		}
