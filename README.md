@@ -2,7 +2,7 @@
 
 # nomad-external-dns
 
-_Nomad External DNS synchronizes Nomad Services with external DNS providers._
+_Synchronize Nomad Services with external DNS providers._
 
 Inspired by [kubernetes-sigs/external-dns](https://github.com/kubernetes-sigs/external-dns), `nomad-external-dns` makes Nomad Services discoverable via DNS servers.
 Nomad 1.3+ [bundles support](https://www.hashicorp.com/blog/nomad-1-3-adds-native-service-discovery-and-edge-workload-support) for native service discovery and `nomad-external-dns` helps to advertise the services inside this registry to external DNS providers.
@@ -60,25 +60,11 @@ Refer to [config.sample.toml](./config.sample.toml) for a list of configurable v
 
 ### Environment Variables
 
-All config variables can also be populated as env vairables by prefixing `NOMAD_VECTOR_LOGGER_` and replacing `.` with `__`.
+All config variables can also be populated as env vairables by prefixing `NOMAD_EXTERNAL_DNS_` and replacing `.` with `__`.
 
-For eg: `app.data_dir` becomes `NOMAD_VECTOR_LOGGER_app__data_dir`.
+For eg: `app.update_interval` becomes `NOMAD_EXTERNAL_DNS_app__update_interval`.
 
-Nomad API client reads the following environment variables:
-
-- `NOMAD_TOKEN`
-- `NOMAD_ADDR`
-- `NOMAD_REGION`
-- `NOMAD_NAMESPACE`
-- `NOMAD_HTTP_AUTH`
-- `NOMAD_CACERT`
-- `NOMAD_CAPATH`
-- `NOMAD_CLIENT_CERT`
-- `NOMAD_CLIENT_KEY`
-- `NOMAD_TLS_SERVER_NAME`
-- `NOMAD_SKIP_VERIFY`
-
-You can read about them in detail [here](https://www.nomadproject.io/docs/runtime/environment).
+For configuring Nomad API client, [these environment variables](https://www.nomadproject.io/docs/runtime/environment) can be set.
 
 ## Contribution
 
