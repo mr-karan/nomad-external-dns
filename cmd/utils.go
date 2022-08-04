@@ -30,20 +30,6 @@ func ParseTTL(s string) (time.Duration, error) {
 	return ttl, nil
 }
 
-// // GetRecordType determines whether the IP is IPv4 or IPv6
-// // and returns the relevant record for it (A/AAAA).
-// func GetRecordType(s string) string {
-// 	ip := net.ParseIP(s)
-// 	switch {
-// 	case ip.To4() != nil:
-// 		return "A"
-// 	case ip.To16() != nil:
-// 		return "AAAA"
-// 	default:
-// 		return models.DefaultRecordType
-// 	}
-// }
-
 // Contains checks if an element exists in the slice.
 func Contains(s []string, e string) bool {
 	for _, a := range s {
@@ -55,7 +41,9 @@ func Contains(s []string, e string) bool {
 }
 
 // GetPrefix returns a unique identifier for a service in a cluster.
-// Each namespace can only have a unique service name, so this identifier works.
+// Each namespace can only have a unique service name.
+// For eg, for a service name `hello` and namespace as `default`
+// this returns `default_hello`.
 func GetPrefix(svc *api.ServiceRegistration) string {
 	return fmt.Sprintf("%s_%s", svc.Namespace, svc.ServiceName)
 }

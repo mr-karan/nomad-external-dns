@@ -75,8 +75,8 @@ func (app *App) UpdateServices(ctx context.Context, updateInterval time.Duration
 				app.lo.Error("error fetching services", "error", err)
 				continue
 			}
-			// Handles DNS updates for these services.
-			// This function read locks the services to determine whether to update records or not.
+			// Update DNS records for the services fetched.
+			// This function holds a read lock to determine whether to update records or not.
 			app.updateRecords(services, app.opts.domains)
 
 			// Add the updated services map to the app once the records are synced.
@@ -108,6 +108,7 @@ func (app *App) PruneRecords(ctx context.Context, pruneInterval time.Duration) {
 				app.lo.Error("error fetching records", "error", err)
 				continue
 			}
+			app.lo.Debug("fetched records", "count", len(records))
 			// Handles DNS deletes for unused records.
 			// This function write locks the services to cleanup unused records.
 			app.cleanupRecords(records)

@@ -53,26 +53,34 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error listing services: %w", err)
 	}
+	app.lo.Debug("fetched service list", "count", len(servicesList))
 
-	app.lo.Debug("fetched services", "count", len(servicesList))
+	// Early return if no services are found.
+	if len(servicesList) == 0 {
+		return services, nil
+	}
+
 	for _, l := range servicesList {
 		for _, s := range l.Services {
 			app.lo.Debug("fetching service details", "svc", s.ServiceName, "namespace", l.Namespace)
-			svcObjects, _, err := app.nomadClient.Services().Get(s.ServiceName, (&api.QueryOptions{Namespace: l.Namespace}))
+			svcRegistrations, _, err := app.nomadClient.Services().Get(s.ServiceName, (&api.QueryOptions{Namespace: l.Namespace}))
 			if err != nil {
 				return nil, fmt.Errorf("error fetching service detail: %w", err)
 			}
-			// If no service objects found, ignore
-			if len(svcObjects) == 0 {
+
+			// If no service registrations are found, ignore this service.
+			if len(svcRegistrations) == 0 {
 				continue
 			}
-			// We use hostname/TTL from annotated tags. If they are missing, ignore this service.
-			if len(svcObjects[0].Tags) == 0 {
+
+			// We use hostname/TTL from annotated tags. If tags are missing, ignore this service.
+			if len(svcRegistrations[0].Tags) == 0 {
 				continue
 			}
-			// Add all the addresses here.
-			addr := make([]string, 0, len(svcObjects))
-			for _, s := range svcObjects {
+
+			// Add all the unique address to a slice.
+			addr := make([]string, 0, len(svcRegistrations))
+			for _, s := range svcRegistrations {
 				// Only append the service if it's not added before. Otherwise AWS complains of a duplicate entry.
 				if !Contains(addr, s.Address) {
 					addr = append(addr, s.Address)
@@ -81,14 +89,14 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 			// We use `[0]` element because these details are same for all elements.
 			// Only address is different and for that we've already iterated and prepared a list.
 			svcMeta := ServiceMeta{
-				Name:      svcObjects[0].ServiceName,
-				Namespace: svcObjects[0].Namespace,
-				Job:       svcObjects[0].JobID,
-				Tags:      svcObjects[0].Tags,
+				Name:      svcRegistrations[0].ServiceName,
+				Namespace: svcRegistrations[0].Namespace,
+				Job:       svcRegistrations[0].JobID,
+				Tags:      svcRegistrations[0].Tags,
 				Addresses: addr,
 			}
 			// Add the service to the map.
-			services[GetPrefix(svcObjects[0])] = svcMeta
+			services[GetPrefix(svcRegistrations[0])] = svcMeta
 		}
 	}
 	return services, nil
@@ -100,9 +108,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 	app.RLock()
 	defer app.RUnlock()
 
-	var (
-		update = false
-	)
+	update := false
 
 	for k, v := range services {
 		// Before creating the record, first check if it exists in the map or not.
@@ -115,6 +121,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 				}
 			}
 		} else {
+			// New service, so update.
 			update = true
 		}
 
@@ -122,12 +129,13 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 			continue
 		}
 
+		// Create a record object from the given service.
 		record, err := v.ToRecord(domains)
 		if err != nil {
 			app.lo.Error("error converting service to record", "error", err)
 			continue
 		}
-		app.lo.Info("setting dns records", "records", record.Records, "zone", record.Zone)
+		app.lo.Info("updating dns records", "records", record.Records, "zone", record.Zone)
 		_, err = app.provider.SetRecords(context.Background(), record.Zone, record.Records)
 		if err != nil {
 			app.lo.Error("error adding records to zone", "error", err)
