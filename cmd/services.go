@@ -78,6 +78,20 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 				continue
 			}
 
+			// Check if the tag contains hostname annotation.
+			// If not, ignore this service.
+			svcIgnored := true
+			for _, t := range svcRegistrations[0].Tags {
+				if strings.HasPrefix(t, HostnameAnnotationKey) {
+					svcIgnored = false
+					break
+				}
+			}
+			if svcIgnored {
+				app.lo.Info("hostname not found in tags, ignoring service", "service", svcRegistrations[0].ServiceName)
+				continue
+			}
+
 			// Add all the unique address to a slice.
 			addr := make([]string, 0, len(svcRegistrations))
 			for _, s := range svcRegistrations {
