@@ -88,7 +88,7 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 				}
 			}
 			if svcIgnored {
-				app.lo.Info("hostname not found in tags, ignoring service", "service", svcRegistrations[0].ServiceName)
+				app.lo.Debug("hostname not found in tags, ignoring service", "service", svcRegistrations[0].ServiceName)
 				continue
 			}
 
