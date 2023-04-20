@@ -13,6 +13,7 @@ import (
 type Opts struct {
 	updateInterval time.Duration
 	pruneInterval  time.Duration
+	createdBy      string
 	domains        []string
 	dryRun         bool
 }

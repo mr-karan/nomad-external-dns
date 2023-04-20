@@ -130,7 +130,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 		}
 
 		// Create a record object from the given service.
-		record, err := v.ToRecord(domains)
+		record, err := v.ToRecord(domains, app.opts.createdBy)
 		if err != nil {
 			app.lo.Error("error converting service to record", "error", err)
 			continue
@@ -146,7 +146,7 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 
 // ToRecord converts a service meta object to a libdns record.
 // This is used to send to upstream DNS providers.
-func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
+func (s *ServiceMeta) ToRecord(domains []string, createdBy string) (RecordMeta, error) {
 	var (
 		host   string
 		zone   string
@@ -200,7 +200,7 @@ func (s *ServiceMeta) ToRecord(domains []string) (RecordMeta, error) {
 			{
 				Type:  "TXT",
 				Name:  strings.TrimSpace(host),
-				Value: fmt.Sprintf("service=%s namespace=%s created-by=nomad-external-dns", s.Name, s.Namespace),
+				Value: fmt.Sprintf("service=%s namespace=%s created-by=%s", s.Name, s.Namespace, createdBy),
 				TTL:   ttl,
 			},
 		},
