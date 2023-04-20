@@ -25,7 +25,7 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 		// Iterate on these records of type TXT and find out whether it's created by this program
 		for _, r := range records {
 			if r.Type == "TXT" {
-				if strings.Contains(r.Value, fmt.Sprintf("created-by=%s", app.opts.createdBy)) {
+				if strings.Contains(r.Value, fmt.Sprintf("owner=%s", app.opts.owner)) {
 					recordNames = append(recordNames, r.Name)
 				}
 			}

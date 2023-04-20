@@ -8,7 +8,7 @@ prune_interval = "1h" # Interval at which any extra records that exist in DNS pr
 [dns]
 provider = "route53"
 domain_filters = ["test.internal"]
-created_by_key = "nomad-external-dns" # This key is used to identify the records created by this tool. Records without this key will be ignored.
+owner_uuid = "0af79bd2-f7e5-4231-bc6a-b492aac6ffbe" # This key is used to identify the records created by this tool. Records without this key will be ignored.
 
 [provider.route53]
 region = "ap-south-1"

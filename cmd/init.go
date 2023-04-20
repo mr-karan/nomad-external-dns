@@ -97,7 +97,7 @@ func initOpts(ko *koanf.Koanf) Opts {
 		pruneInterval:  ko.MustDuration("app.prune_interval"),
 		domains:        ko.MustStrings("dns.domain_filters"),
 		dryRun:         ko.Bool("app.dry_run"),
-		createdBy:      ko.MustString("dns.created_by_key"),
+		owner:          ko.MustString("dns.owner_uuid"),
 	}
 }
 
