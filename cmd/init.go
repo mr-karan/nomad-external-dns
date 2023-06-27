@@ -13,19 +13,19 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	route53 "github.com/mr-karan/libdns-route53"
 	flag "github.com/spf13/pflag"
-	"github.com/zerodha/logf"
+	"golang.org/x/exp/slog"
 )
 
 // initLogger initializes logger instance.
-func initLogger(ko *koanf.Koanf) logf.Logger {
-	opts := logf.Opts{EnableCaller: true}
+func initLogger(ko *koanf.Koanf) *slog.Logger {
+	opts := slog.HandlerOptions{}
 	if ko.String("app.log_level") == "debug" {
-		opts.Level = logf.DebugLevel
+		opts.Level = slog.LevelDebug
+		opts.AddSource = true
 	}
-	if ko.String("app.env") == "dev" {
-		opts.EnableColor = true
-	}
-	return logf.New(opts)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &opts))
+
+	return logger
 }
 
 // initConfig loads config to `ko` object.
@@ -112,19 +112,47 @@ func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 	switch ko.MustString("dns.provider") {
 	case "route53":
 		provider, err = route53.NewProvider(context.Background(), route53.Opt{
-			Region: ko.MustString("provider.route53.region"), // libdns defaults to us-east-1 so this **must** be provided.
+			MaxRetries: ko.Int("provider.route53.max_retries"),
+			Region:     ko.MustString("provider.route53.region"), // libdns defaults to us-east-1 so this **must** be provided.
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: Test this out.
-	// case "cloudflare":
-	// 	provider = &cloudflare.Provider{APIToken: ko.MustString("provider.cloudflare.api_token")}
 	default:
 		return nil, fmt.Errorf("unknown provider type")
 	}
 
 	// Initialise the controller object.
 	return provider, nil
+}
+
+func initApp(ko *koanf.Koanf) (*App, error) {
+	logger := initLogger(ko)
+	opts := initOpts(ko)
+
+	// Validate that prune_interval must always be greater than update_interval.
+	if opts.pruneInterval < opts.updateInterval {
+		return nil, fmt.Errorf("prune_interval should be greater than update_interval")
+	}
+
+	prov, err := initProvider(ko)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize DNS provider: %w", err)
+	}
+
+	client, err := initNomadClient()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize Nomad API client: %w", err)
+	}
+
+	logger.Info("Initialized Nomad client", "addr", client.Address())
+
+	return &App{
+		lo:          logger,
+		opts:        opts,
+		services:    make(map[string]ServiceMeta, 0),
+		provider:    prov,
+		nomadClient: client,
+	}, nil
 }
