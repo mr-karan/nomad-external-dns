@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/nomad/api"
-	"github.com/zerodha/logf"
+	"golang.org/x/exp/slog"
 )
 
 // Opts represents certain configurable items.
@@ -23,7 +23,7 @@ type Opts struct {
 type App struct {
 	sync.RWMutex
 
-	lo          logf.Logger
+	lo          *slog.Logger
 	opts        Opts
 	provider    DNSProvider
 	nomadClient *api.Client
@@ -33,13 +33,6 @@ type App struct {
 // Start initialises background workers and waits for them to exit on cancellation.
 func (app *App) Start(ctx context.Context) {
 	wg := &sync.WaitGroup{}
-
-	// Validate that prune_interval must always be greater than update_interval.
-	// If it's less, there's a chance that the provider records will be deleted
-	// before the services are updated inside the map.
-	if app.opts.pruneInterval < app.opts.updateInterval {
-		app.lo.Fatal("prune_interval needs to be higher than update_interval")
-	}
 
 	// Start a background worker for fetching and updating DNS records.
 	wg.Add(1)

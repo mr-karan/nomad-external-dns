@@ -10,6 +10,7 @@ import (
 var (
 	// Version of the build. This is injected at build-time.
 	buildString = "unknown"
+	exit        = func() { os.Exit(1) }
 )
 
 func main() {
@@ -29,14 +30,16 @@ func main() {
 	// Initialise DNS provider.
 	prov, err := initProvider(ko)
 	if err != nil {
-		app.lo.Fatal("error initialising dns provider", "error", err)
+		app.lo.Error("error initialising dns provider", err)
+		exit()
 	}
 	app.provider = prov
 
 	// Initialise nomad api client.
 	client, err := initNomadClient()
 	if err != nil {
-		app.lo.Fatal("error initialising nomad api client", "error", err)
+		app.lo.Error("error initialising nomad api client", err)
+		exit()
 	}
 	app.nomadClient = client
 
@@ -46,5 +49,14 @@ func main() {
 	app.lo.Info("starting nomad-external-dns",
 		"version", buildString,
 	)
+
+	// Validate that prune_interval must always be greater than update_interval.
+	// If it's less, there's a chance that the provider records will be deleted
+	// before the services are updated inside the map.
+	if app.opts.pruneInterval < app.opts.updateInterval {
+		app.lo.Warn("prune_interval needs to be higher than update_interval")
+		exit()
+	}
+
 	app.Start(ctx)
 }

@@ -109,6 +109,7 @@ func (app *App) fetchServices() (map[string]ServiceMeta, error) {
 				Tags:      svcRegistrations[0].Tags,
 				Addresses: addr,
 			}
+			fmt.Println("!!!!!!!! addr", svcMeta.Addresses)
 			// Add the service to the map.
 			services[GetPrefix(svcRegistrations[0])] = svcMeta
 		}
@@ -129,14 +130,23 @@ func (app *App) updateRecords(services map[string]ServiceMeta, domains []string)
 		// If it exists and the record values are also same, then don't do any DNS update.
 		_, exists := app.services[k]
 		if exists {
+			app.lo.Debug("checking if service already exists", "service", k)
+			// Check if the addresses are same.
 			for _, a := range app.services[k].Addresses {
 				if !Contains(v.Addresses, a) {
+					update = true
+				}
+			}
+			// Check if the tags are same.
+			for _, t := range app.services[k].Tags {
+				if !Contains(v.Tags, t) {
 					update = true
 				}
 			}
 		} else {
 			// New service, so update.
 			update = true
+			app.lo.Debug("service not found in map, updating", "service", k)
 		}
 
 		if !update {

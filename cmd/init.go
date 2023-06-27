@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -11,21 +10,21 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	route53 "github.com/mr-karan/libdns-route53"
+	route53 "github.com/libdns/route53"
 	flag "github.com/spf13/pflag"
-	"github.com/zerodha/logf"
+	"golang.org/x/exp/slog"
 )
 
 // initLogger initializes logger instance.
-func initLogger(ko *koanf.Koanf) logf.Logger {
-	opts := logf.Opts{EnableCaller: true}
+func initLogger(ko *koanf.Koanf) *slog.Logger {
+	opts := slog.HandlerOptions{}
 	if ko.String("app.log_level") == "debug" {
-		opts.Level = logf.DebugLevel
+		opts.Level = slog.LevelDebug
+		opts.AddSource = true
 	}
-	if ko.String("app.env") == "dev" {
-		opts.EnableColor = true
-	}
-	return logf.New(opts)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &opts))
+
+	return logger
 }
 
 // initConfig loads config to `ko` object.
@@ -111,16 +110,15 @@ func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 
 	switch ko.MustString("dns.provider") {
 	case "route53":
-		provider, err = route53.NewProvider(context.Background(), route53.Opt{
-			Region: ko.MustString("provider.route53.region"), // libdns defaults to us-east-1 so this **must** be provided.
-		})
+		provider = &route53.Provider{
+			MaxRetries:         ko.Int("provider.route53.max_retries"),
+			Region:             ko.MustString("provider.route53.region"),
+			WaitForPropagation: false,
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: Test this out.
-	// case "cloudflare":
-	// 	provider = &cloudflare.Provider{APIToken: ko.MustString("provider.cloudflare.api_token")}
 	default:
 		return nil, fmt.Errorf("unknown provider type")
 	}
