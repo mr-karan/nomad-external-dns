@@ -6,9 +6,9 @@ import (
 	"github.com/hashicorp/nomad/api"
 )
 
-// FetchNomadServices retrieves all services from the Nomad API
+// fetchNomadServices retrieves all services from the Nomad API
 // and returns a map where of services where the key is the unique ID of the service.
-func (app *App) FetchNomadServices() (map[string]ServiceMeta, error) {
+func (app *App) fetchNomadServices() (map[string]ServiceMeta, error) {
 	services := make(map[string]ServiceMeta)
 
 	// Fetch the list of services
@@ -53,25 +53,24 @@ func (app *App) fetchServiceMeta(namespace, serviceName string) (*ServiceMeta, e
 		return nil, fmt.Errorf("error fetching service detail: %w", err)
 	}
 
-	// If there are no service registrations or no tags, return nil
+	// If there are no service registrations or no tags, return nil.
 	if len(svcRegistrations) == 0 || len(svcRegistrations[0].Tags) == 0 {
 		return nil, nil
 	}
 
-	// Check if the service has a hostname annotation, if not, ignore the service
+	// Check if the service has a hostname annotation, if not, ignore the service.
 	if !hasHostnameAnnotation(svcRegistrations[0].Tags) {
 		app.lo.Debug("Hostname not found in tags, ignoring service", "service", svcRegistrations[0].ServiceName)
 		return nil, nil
 	}
 
-	// Create a ServiceMeta object and return its reference
-	addr := uniqueAddresses(svcRegistrations)
+	// Create a ServiceMeta object and return its reference.
 	svcMeta := ServiceMeta{
 		Name:      svcRegistrations[0].ServiceName,
 		Namespace: svcRegistrations[0].Namespace,
 		Job:       svcRegistrations[0].JobID,
 		Tags:      svcRegistrations[0].Tags,
-		Addresses: addr,
+		Addresses: uniqueAddresses(svcRegistrations),
 		DNSName:   getDNSNameFromTags(svcRegistrations[0].Tags),
 	}
 	return &svcMeta, nil

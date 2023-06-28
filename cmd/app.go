@@ -67,7 +67,7 @@ func (app *App) runWorker(ctx context.Context, wg *sync.WaitGroup, interval time
 // and updates the records in upstream DNS providers.
 func (app *App) UpdateServices(ctx context.Context) {
 	// Fetch the list of services from the cluster.
-	services, err := app.FetchNomadServices()
+	services, err := app.fetchNomadServices()
 	if err != nil {
 		app.lo.Error("Failed to fetch services", err)
 		return
@@ -75,7 +75,7 @@ func (app *App) UpdateServices(ctx context.Context) {
 
 	// Update DNS records for the services fetched.
 	// This function holds a read lock to determine whether to update records or not.
-	app.UpdateRecords(services, app.opts.domains)
+	app.updateRecords(services, app.opts.domains)
 
 	// Add the updated services map to the app once the records are synced.
 	app.Lock()
@@ -83,20 +83,17 @@ func (app *App) UpdateServices(ctx context.Context) {
 	app.Unlock()
 }
 
-// PruneRecords fetches the records for all zones from the DNS provider.
-// It then checks whether the service exists in Nomad cluster or not.
-// If it doesn't exist then it prunes the record in Provider.
+// PruneRecords fetches the records for all zones from the DNS provider and checks
+// whether the service exists in Nomad cluster. If it doesn't exist then it prunes the record in Provider.
 func (app *App) PruneRecords(ctx context.Context) {
-	// Fetch the list of records from the DNS provider.
 	records, err := app.fetchRecords()
 	if err != nil {
-		app.lo.Error("Failed to fetch records", err)
+		app.lo.Error("Failed to fetch records", "error", err)
 		return
 	}
 
 	app.lo.Debug("Fetched records", "count", len(records))
 
-	// Handles DNS deletes for unused records.
-	// This function write locks the services to cleanup unused records.
+	// cleanupRecords handles DNS deletions for unused records.
 	app.cleanupRecords(records)
 }

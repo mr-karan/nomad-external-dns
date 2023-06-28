@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
@@ -21,13 +22,20 @@ func getServiceID(svcMeta *ServiceMeta) string {
 	return svcMeta.Namespace + "_" + svcMeta.Name + "_" + svcMeta.DNSName
 }
 
-// sameStringSlice checks if two string slices are the same. It assumes the slices are already sorted.
+// sameStringSlice checks if two string slices have the same elements, regardless of order.
 func sameStringSlice(s1, s2 []string) bool {
-	if len(s1) != len(s2) {
+	// Make copies of the slices, because sort.Strings() sorts in place
+	s1Copy := append([]string{}, s1...)
+	s2Copy := append([]string{}, s2...)
+
+	sort.Strings(s1Copy)
+	sort.Strings(s2Copy)
+
+	if len(s1Copy) != len(s2Copy) {
 		return false
 	}
-	for i := range s1 {
-		if s1[i] != s2[i] {
+	for i := range s1Copy {
+		if s1Copy[i] != s2Copy[i] {
 			return false
 		}
 	}
