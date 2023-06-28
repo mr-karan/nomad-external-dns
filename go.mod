@@ -3,14 +3,13 @@ module github.com/mr-karan/nomad-external-dns
 go 1.19
 
 require (
-	github.com/hashicorp/nomad/api v0.0.0-20230622064628-c19253215bd5
+	github.com/hashicorp/nomad/api v0.0.0-20230627233251-f3df01e4220d
 	github.com/knadh/koanf v1.5.0
 	github.com/libdns/libdns v0.2.1
-	github.com/libdns/route53 v1.3.3
-	github.com/mr-karan/libdns-route53 v1.3.1-0.20220719073346-f6674734db71
+	github.com/mr-karan/libdns-route53 v1.4.0
 	github.com/spf13/pflag v1.0.5
-	github.com/zerodha/logf v0.5.5
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
+	github.com/stretchr/testify v1.8.1
+	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
 
 require (
@@ -27,9 +26,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.2 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/hashicorp/cronexpr v1.1.1 // indirect
+	github.com/hashicorp/cronexpr v1.1.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -40,5 +40,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

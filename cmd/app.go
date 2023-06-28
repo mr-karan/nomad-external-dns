@@ -32,84 +32,71 @@ type App struct {
 
 // Start initialises background workers and waits for them to exit on cancellation.
 func (app *App) Start(ctx context.Context) {
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 
-	// Start a background worker for fetching and updating DNS records.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		app.UpdateServices(ctx, app.opts.updateInterval)
-	}()
-
-	// Start a background worker for pruning outdated records that may exist in the DNS provider.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		app.PruneRecords(ctx, app.opts.pruneInterval)
-	}()
+	app.runWorker(ctx, &wg, app.opts.updateInterval, app.UpdateServices, "updater")
+	app.runWorker(ctx, &wg, app.opts.pruneInterval, app.PruneRecords, "pruner")
 
 	// Wait for all routines to finish.
 	wg.Wait()
 }
 
-// UpdateServices fetches Nomad services from all the namespaces
-// at periodic interval and updates the records in upstream DNS providers.
-// This is a blocking function so the caller must invoke as a goroutine.
-func (app *App) UpdateServices(ctx context.Context, updateInterval time.Duration) {
-	var (
-		ticker = time.NewTicker(updateInterval).C
-	)
+// runWorker is a helper function to encapsulate the goroutine spawning and error handling logic.
+func (app *App) runWorker(ctx context.Context, wg *sync.WaitGroup, interval time.Duration, workerFunc func(context.Context), workerName string) {
+	wg.Add(1)
 
-	for {
-		select {
-		case <-ticker:
-			// Fetch the list of services from the cluster.
-			services, err := app.fetchServices()
-			if err != nil {
-				app.lo.Error("error fetching services", "error", err)
-				continue
+	go func() {
+		defer wg.Done()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				workerFunc(ctx)
+			case <-ctx.Done():
+				app.lo.Warn("Context cancellation received, terminating worker", "worker", workerName)
+				return
 			}
-			// Update DNS records for the services fetched.
-			// This function holds a read lock to determine whether to update records or not.
-			app.updateRecords(services, app.opts.domains)
-
-			// Add the updated services map to the app once the records are synced.
-			app.Lock()
-			app.services = services
-			app.Unlock()
-
-		case <-ctx.Done():
-			app.lo.Warn("context cancellation received, quitting update services worker")
-			return
 		}
+	}()
+}
+
+// UpdateServices fetches Nomad services from all the namespaces
+// and updates the records in upstream DNS providers.
+func (app *App) UpdateServices(ctx context.Context) {
+	// Fetch the list of services from the cluster.
+	services, err := app.FetchNomadServices()
+	if err != nil {
+		app.lo.Error("Failed to fetch services", err)
+		return
 	}
+
+	// Update DNS records for the services fetched.
+	// This function holds a read lock to determine whether to update records or not.
+	app.UpdateRecords(services, app.opts.domains)
+
+	// Add the updated services map to the app once the records are synced.
+	app.Lock()
+	app.services = services
+	app.Unlock()
 }
 
 // PruneRecords fetches the records for all zones from the DNS provider.
 // It then checks whether the service exists in Nomad cluster or not.
 // If it doesn't exist then it prunes the record in Provider.
-func (app *App) PruneRecords(ctx context.Context, pruneInterval time.Duration) {
-	var (
-		ticker = time.NewTicker(pruneInterval).C
-	)
-
-	for {
-		select {
-		case <-ticker:
-			// Fetch the list of records from the DNS provider.
-			records, err := app.fetchRecords()
-			if err != nil {
-				app.lo.Error("error fetching records", "error", err)
-				continue
-			}
-			app.lo.Debug("fetched records", "count", len(records))
-			// Handles DNS deletes for unused records.
-			// This function write locks the services to cleanup unused records.
-			app.cleanupRecords(records)
-
-		case <-ctx.Done():
-			app.lo.Warn("context cancellation received, quitting prune records worker")
-			return
-		}
+func (app *App) PruneRecords(ctx context.Context) {
+	// Fetch the list of records from the DNS provider.
+	records, err := app.fetchRecords()
+	if err != nil {
+		app.lo.Error("Failed to fetch records", err)
+		return
 	}
+
+	app.lo.Debug("Fetched records", "count", len(records))
+
+	// Handles DNS deletes for unused records.
+	// This function write locks the services to cleanup unused records.
+	app.cleanupRecords(records)
 }

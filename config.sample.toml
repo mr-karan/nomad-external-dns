@@ -3,7 +3,7 @@ log_level = "debug" # `debug` for verbose logs. `info` otherwise.
 env = "dev" # dev|prod.
 dry_run = true # set to true if you don't want the DNS records to be actually created.
 update_interval = "10s" # Interval at which the records are synced from Nomad to DNS providers.
-prune_interval = "30s" # Interval at which any extra records that exist in DNS providers but doesn't exist in Nomad cluster are cleaned up. It maybe an expensive operation with some DNS providers like AWS R53 to do this so keep a higher interval (preferably in order of a few minutes)
+prune_interval = "1h" # Interval at which any extra records that exist in DNS providers but doesn't exist in Nomad cluster are cleaned up. It maybe an expensive operation with some DNS providers like AWS R53 to do this so keep a higher interval (preferably in order of a few minutes)
 
 [dns]
 provider = "route53"

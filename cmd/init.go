@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	route53 "github.com/libdns/route53"
+	route53 "github.com/mr-karan/libdns-route53"
 	flag "github.com/spf13/pflag"
 	"golang.org/x/exp/slog"
 )
@@ -110,11 +111,10 @@ func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 
 	switch ko.MustString("dns.provider") {
 	case "route53":
-		provider = &route53.Provider{
-			MaxRetries:         ko.Int("provider.route53.max_retries"),
-			Region:             ko.MustString("provider.route53.region"),
-			WaitForPropagation: false,
-		}
+		provider, err = route53.NewProvider(context.Background(), route53.Opt{
+			MaxRetries: ko.Int("provider.route53.max_retries"),
+			Region:     ko.MustString("provider.route53.region"), // libdns defaults to us-east-1 so this **must** be provided.
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -125,4 +125,34 @@ func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 
 	// Initialise the controller object.
 	return provider, nil
+}
+
+func initApp(ko *koanf.Koanf) (*App, error) {
+	logger := initLogger(ko)
+	opts := initOpts(ko)
+
+	// Validate that prune_interval must always be greater than update_interval.
+	if opts.pruneInterval < opts.updateInterval {
+		return nil, fmt.Errorf("prune_interval should be greater than update_interval")
+	}
+
+	prov, err := initProvider(ko)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize DNS provider: %w", err)
+	}
+
+	client, err := initNomadClient()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize Nomad API client: %w", err)
+	}
+
+	logger.Info("Initialized Nomad client", "addr", client.Address())
+
+	return &App{
+		lo:          logger,
+		opts:        opts,
+		services:    make(map[string]ServiceMeta, 0),
+		provider:    prov,
+		nomadClient: client,
+	}, nil
 }
