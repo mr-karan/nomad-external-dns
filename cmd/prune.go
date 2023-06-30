@@ -14,7 +14,7 @@ func (app *App) cleanupRecords() error {
 	app.Lock()         // Lock to prevent concurrent modifications
 	defer app.Unlock() // Unlock when function execution is finished
 
-	app.lo.Debug("Starting cleanup of DNS records")
+	app.lo.Info("Starting cleanup of DNS records")
 
 	// Fetch all DNS records owned by this program
 	recordsMap, err := app.fetchRecords()
@@ -24,11 +24,13 @@ func (app *App) cleanupRecords() error {
 
 	// Identify records that are outdated i.e., not present in the current service list
 	outdatedRecords := identifyOutdatedRecords(app.services, recordsMap)
-	app.lo.Debug("Identified outdated records", "count", len(outdatedRecords), "records", outdatedRecords)
+	app.lo.Info("Identified outdated records", "count", len(outdatedRecords), "records", outdatedRecords)
 
-	// Delete the outdated records from the DNS provider
-	if err := app.deleteOutdatedRecords(outdatedRecords, recordsMap); err != nil {
-		return fmt.Errorf("error deleting outdated records: %w", err)
+	// Delete the outdated records from the DNS provider.
+	if len(outdatedRecords) > 0 {
+		if err := app.deleteOutdatedRecords(outdatedRecords, recordsMap); err != nil {
+			return fmt.Errorf("error deleting outdated records: %w", err)
+		}
 	}
 
 	return nil
@@ -101,7 +103,7 @@ func groupOwnedRecords(ownedRecords *map[string][]RecordMeta, records []libdns.R
 
 // deleteOutdatedRecords removes the outdated DNS records from the DNS provider.
 func (app *App) deleteOutdatedRecords(outdatedRecords []string, recordsMap map[string][]RecordMeta) error {
-	app.lo.Debug("Starting deletion of outdated DNS records", "count", len(outdatedRecords))
+	app.lo.Info("Starting deletion of outdated DNS records", "count", len(outdatedRecords))
 
 	// Iterate over all outdated records
 	for _, record := range outdatedRecords {
