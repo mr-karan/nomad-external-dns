@@ -65,7 +65,7 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 
 		// Build a map of owned records grouped by the record name
 		// For A records, if multiple records exist for the same name, their values are concatenated
-		groupOwnedRecords(&ownedRecords, records, recordNames, zone, domain)
+		groupOwnedRecords(&ownedRecords, records, recordNames, zone)
 	}
 
 	return ownedRecords, nil
@@ -83,17 +83,17 @@ func filterOwnedRecords(records []libdns.Record, owner string) []string {
 }
 
 // groupOwnedRecords groups the owned records by their name. For A records with the same name, their values are concatenated.
-func groupOwnedRecords(ownedRecords *map[string][]RecordMeta, records []libdns.Record, recordNames []string, zone string, domain string) {
+func groupOwnedRecords(ownedRecords *map[string][]RecordMeta, records []libdns.Record, recordNames []string, zone string) {
 	for _, rec := range records {
 		if Contains(recordNames, rec.Name) {
 			dns := rec.Name
 			rec.Name = strings.TrimSuffix(rec.Name, zone) // Overwrite to set a proper relative name before we delete.
 
-			// If an A record with the same name already exists, append the value
+			// If an A record with the same name already exists, append the IP address to the existing record.
 			if rec.Type == "A" && len((*ownedRecords)[dns]) > 0 {
 				(*ownedRecords)[dns][0].Records[0].Value += "," + rec.Value
 			} else {
-				(*ownedRecords)[dns] = append((*ownedRecords)[dns], RecordMeta{Zone: domain, Records: []libdns.Record{rec}})
+				(*ownedRecords)[dns] = append((*ownedRecords)[dns], RecordMeta{Zone: EnsureFQDN(zone), Records: []libdns.Record{rec}})
 			}
 		}
 	}
