@@ -12,38 +12,38 @@ import (
 // This is used to send to upstream DNS providers.
 func (s *ServiceMeta) ToRecord(domains []string, owner string) (RecordMeta, error) {
 	var (
-		host string
-		zone string
-		ttl  = DefaultTTL // Set default TTL
-		err  error
+		hostname  string
+		zoneName  string
+		recordTTL = DefaultTTL // Set default TTL
+		err       error
 	)
 
 	if len(s.Tags) == 0 {
 		return RecordMeta{}, fmt.Errorf("tags cannot be empty")
 	}
 
-	// Parse the hostname and TTL from tags.
-	host, zone, ttl, err = s.parseTags(domains)
+	// Parse the hostname, zone and TTL from tags.
+	hostname, zoneName, recordTTL, err = s.parseTags(domains)
 	if err != nil {
 		return RecordMeta{}, err
 	}
 
-	zone = EnsureFQDN(zone)
+	zoneName = EnsureFQDN(zoneName)
 
-	record := prepareRecord(s, host, zone, ttl, owner)
-	return record, nil
+	dnsRecord := constructRecord(s, hostname, zoneName, recordTTL, owner)
+	return dnsRecord, nil
 }
 
 // parseTags parses service tags to extract hostname, zone and ttl.
-func (s *ServiceMeta) parseTags(domains []string) (host, zone string, ttl time.Duration, err error) {
+func (s *ServiceMeta) parseTags(domains []string) (hostname, zone string, ttl time.Duration, err error) {
 	for _, tag := range s.Tags {
 		if strings.HasPrefix(tag, HostnameAnnotationKey) {
-			host, zone, err = parseHost(tag, domains)
+			hostname, zone, err = parseHostname(tag, domains)
 			if err != nil {
 				return
 			}
 		} else if strings.HasPrefix(tag, TTLAnnotationKey) {
-			ttl, err = parseTTL(tag)
+			ttl, err = parseTTLValue(tag)
 			if err != nil {
 				ttl = DefaultTTL
 			}
@@ -52,8 +52,8 @@ func (s *ServiceMeta) parseTags(domains []string) (host, zone string, ttl time.D
 	return
 }
 
-// parseHost extracts host and zone from a given tag.
-func parseHost(tag string, domains []string) (host, zone string, err error) {
+// parseHostname extracts host and zone from a given tag.
+func parseHostname(tag string, domains []string) (hostname, zone string, err error) {
 	split := strings.Split(tag, HostnameAnnotationKey+"=")
 	if len(split) != 2 {
 		return "", "", fmt.Errorf("error splitting tag %s: expected 2 elements, got %d", tag, len(split))
@@ -70,8 +70,8 @@ func parseHost(tag string, domains []string) (host, zone string, err error) {
 	return "", "", fmt.Errorf("hostname doesn't contain a valid domain TLD")
 }
 
-// parseTTL extracts ttl from a given tag.
-func parseTTL(tag string) (ttl time.Duration, err error) {
+// parseTTLValue extracts ttl from a given tag.
+func parseTTLValue(tag string) (ttl time.Duration, err error) {
 	split := strings.Split(tag, TTLAnnotationKey+"=")
 	if len(split) != 2 {
 		return -1, fmt.Errorf("error splitting tag %s: expected 2 elements, got %d", tag, len(split))
@@ -83,22 +83,22 @@ func parseTTL(tag string) (ttl time.Duration, err error) {
 	return ttl, nil
 }
 
-func prepareRecord(s *ServiceMeta, host, zone string, ttl time.Duration, owner string) RecordMeta {
+func constructRecord(s *ServiceMeta, hostname, zone string, ttl time.Duration, owner string) RecordMeta {
 	// Generate comma-separated list of addresses
-	addresses := strings.Join(s.Addresses, ",")
+	addressList := strings.Join(s.Addresses, ",")
 
 	// Create an A record with all addresses
 	aRecord := libdns.Record{
 		Type:  "A",
-		Name:  host,
-		Value: addresses,
+		Name:  hostname,
+		Value: addressList,
 		TTL:   ttl,
 	}
 
 	// Create a TXT record with metadata
 	txtRecord := libdns.Record{
 		Type: "TXT",
-		Name: host,
+		Name: hostname,
 		Value: fmt.Sprintf(
 			"service=%s namespace=%s owner=%s created-by=nomad-external-dns",
 			s.Name, s.Namespace, owner,

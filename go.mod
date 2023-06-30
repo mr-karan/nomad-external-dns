@@ -3,7 +3,7 @@ module github.com/mr-karan/nomad-external-dns
 go 1.19
 
 require (
-	github.com/hashicorp/nomad/api v0.0.0-20230627233251-f3df01e4220d
+	github.com/hashicorp/nomad/api v0.0.0-20230629131954-9e5fc7768947
 	github.com/knadh/koanf v1.5.0
 	github.com/libdns/libdns v0.2.1
 	github.com/mr-karan/libdns-route53 v1.4.0

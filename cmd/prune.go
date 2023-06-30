@@ -13,14 +13,14 @@ func (app *App) fetchRecords() (map[string][]RecordMeta, error) {
 	ownedRecords := make(map[string][]RecordMeta)
 
 	for _, domain := range app.opts.domains {
-		records, err := app.provider.GetRecords(context.Background(), domain+".")
+		records, err := app.provider.GetRecords(context.Background(), EnsureFQDN(domain))
 		if err != nil {
 			return nil, fmt.Errorf("error fetching records: %w", err)
 		}
 
 		for _, record := range records {
 			if record.Type == "TXT" && strings.Contains(record.Value, fmt.Sprintf("owner=%s", app.opts.owner)) {
-				record.Name = strings.TrimSuffix(record.Name, domain+".")
+				record.Name = EnsureFQDN(strings.TrimSuffix(record.Name, EnsureFQDN(domain)))
 				relativeName := libdns.RelativeName(record.Name, domain)
 				ownedRecords[relativeName] = append(ownedRecords[relativeName], RecordMeta{Zone: domain, Records: []libdns.Record{record}})
 			}
