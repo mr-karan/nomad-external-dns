@@ -17,11 +17,6 @@ func Contains(s []string, e string) bool {
 	return false
 }
 
-// getServiceID generates a unique ID for a service.
-func getServiceID(svcMeta *ServiceMeta) string {
-	return svcMeta.Namespace + "_" + svcMeta.Name + "_" + svcMeta.DNSName
-}
-
 // sameStringSlice checks if two string slices have the same elements, regardless of order.
 func sameStringSlice(s1, s2 []string) bool {
 	// Make copies of the slices, because sort.Strings() sorts in place

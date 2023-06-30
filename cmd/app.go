@@ -69,7 +69,7 @@ func (app *App) UpdateServices(ctx context.Context) {
 	// Fetch the list of services from the cluster.
 	services, err := app.fetchNomadServices()
 	if err != nil {
-		app.lo.Error("Failed to fetch services", err)
+		app.lo.Error("Failed to fetch services", "error", err)
 		return
 	}
 
@@ -86,14 +86,9 @@ func (app *App) UpdateServices(ctx context.Context) {
 // PruneRecords fetches the records for all zones from the DNS provider and checks
 // whether the service exists in Nomad cluster. If it doesn't exist then it prunes the record in Provider.
 func (app *App) PruneRecords(ctx context.Context) {
-	records, err := app.fetchRecords()
-	if err != nil {
+	// cleanupRecords handles DNS deletions for unused records.
+	if err := app.cleanupRecords(); err != nil {
 		app.lo.Error("Failed to fetch records", "error", err)
 		return
 	}
-
-	app.lo.Debug("Fetched records", "count", len(records))
-
-	// cleanupRecords handles DNS deletions for unused records.
-	app.cleanupRecords(records)
 }

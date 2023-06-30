@@ -25,9 +25,9 @@ func (app *App) fetchNomadServices() (map[string]ServiceMeta, error) {
 				return nil, err
 			}
 
-			// If metadata exists, store it in the services map
+			// If metadata exists, store it in the services map.
 			if svcMeta != nil {
-				services[getServiceID(svcMeta)] = *svcMeta
+				services[EnsureFQDN(svcMeta.DNSName)] = *svcMeta
 			}
 		}
 	}
