@@ -19,3 +19,25 @@ archives:
       - README.md
       - LICENSE
       - config.sample.toml
+
+dockers:
+  - id: nomad-external-dns
+    goos: linux
+    goarch: amd64
+    ids:
+      - nomad-external-dns
+    image_templates:
+      - "ghcr.io/mr-karan/nomad-external-dns:{{ .Tag }}"
+      - "ghcr.io/mr-karan/nomad-external-dns:latest"
+    skip_push: false
+    dockerfile: Dockerfile
+    use: docker
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - config.sample.toml

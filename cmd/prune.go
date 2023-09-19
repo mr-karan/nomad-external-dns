@@ -39,7 +39,9 @@ func (app *App) cleanupRecords() error {
 // identifyOutdatedRecords compares the current service list with the DNS records and identifies which records are outdated.
 func identifyOutdatedRecords(services map[string]ServiceMeta, recordsMap map[string][]RecordMeta) []string {
 	outdatedRecords := make([]string, 0)
+	// FIXME: There seems to be some incosistency in the record names. Some have a trailing dot and some don't.
 	for recordName := range recordsMap {
+		fmt.Println("Checking record", "record", recordName, services)
 		if _, exists := services[recordName]; !exists {
 			outdatedRecords = append(outdatedRecords, recordName)
 		}
