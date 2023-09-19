@@ -6,10 +6,13 @@ update_interval = "10s" # Interval at which the records are synced from Nomad to
 prune_interval = "15s" # Interval at which any extra records that exist in DNS providers but doesn't exist in Nomad cluster are cleaned up. It maybe an expensive operation with some DNS providers like AWS R53 to do this so keep a higher interval (preferably in order of a few minutes)
 
 [dns]
-provider = "route53"
-domain_filters = ["test.internal"]
+provider = "route53" # route53 or cloudflare
+domain_filters = ["example.internal"]
 owner_uuid = "0af79bd2-f7e5-4231-bc6a-b492aac6ffbe" # This key is used to identify the records created by this tool. Records without this key will be ignored.
 
 [provider.route53]
 region = "ap-south-1"
 max_retries = 5
+
+[provider.cloudflare]
+api_token = ""

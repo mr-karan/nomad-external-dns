@@ -41,6 +41,8 @@ func (app *App) propogateChange(key string, svc ServiceMeta, domains []string) e
 		return err
 	}
 
+	app.lo.Debug("Updating DNS records", "zone", record.Zone, "records", record.Records)
+
 	_, err = app.provider.SetRecords(context.Background(), record.Zone, record.Records)
 	if err != nil {
 		app.lo.Error("error setting records to zone", "error", err)

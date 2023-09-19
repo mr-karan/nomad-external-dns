@@ -10,7 +10,7 @@ Nomad 1.3+ [bundles support](https://www.hashicorp.com/blog/nomad-1-3-adds-nativ
 ## Supported Providers
 
 * [AWS Route 53](https://aws.amazon.com/route53/)
-* [CloudFlare](https://www.cloudflare.com/dns) - _Coming Soon!_
+* [CloudFlare](https://www.cloudflare.com/dns)
 
 ## How it Works
 

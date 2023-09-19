@@ -11,6 +11,7 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
+	cloudflare "github.com/libdns/cloudflare"
 	route53 "github.com/mr-karan/libdns-route53"
 	flag "github.com/spf13/pflag"
 	"golang.org/x/exp/slog"
@@ -118,6 +119,9 @@ func initProvider(ko *koanf.Koanf) (DNSProvider, error) {
 		if err != nil {
 			return nil, err
 		}
+
+	case "cloudflare":
+		provider = &cloudflare.Provider{APIToken: ko.MustString("provider.cloudflare.api_token")}
 
 	default:
 		return nil, fmt.Errorf("unknown provider type")
